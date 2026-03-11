@@ -22,21 +22,43 @@
       {
         "command": "ollamacommit.generateCommit",
         "title": "Ollama Commit: Generate Commit Message",
-        "category": "Ollama Commit"
+        "category": "Ollama Commit",
+        "icon": {
+          "light": "media/generate-light.svg",
+          "dark": "media/generate-dark.svg"
+        }
       },
       {
         "command": "ollamacommit.openSettings",
         "title": "Ollama Commit: Open Settings Page",
-        "category": "Ollama Commit"
+        "category": "Ollama Commit",
+        "icon": {
+          "light": "media/settings-light.svg",
+          "dark": "media/settings-dark.svg"
+        }
       }
     ],
+    "menus": {
+      "scm/title": [
+        {
+          "command": "ollamacommit.generateCommit",
+          "group": "navigation@1",
+          "when": "scmProvider == git"
+        },
+        {
+          "command": "ollamacommit.openSettings",
+          "group": "navigation@2",
+          "when": "scmProvider == git"
+        }
+      ]
+    },
     "configuration": {
       "title": "Ollama Commit",
       "properties": {
         "ollamacommit.baseUrl": {
           "type": "string",
           "default": "http://127.0.0.1:11434",
-          "description": "Base URL for the local Ollama server."
+          "description": "Base URL for the Ollama server. In WSL the extension will also try Windows host fallbacks automatically."
         },
         "ollamacommit.model": {
           "type": "string",

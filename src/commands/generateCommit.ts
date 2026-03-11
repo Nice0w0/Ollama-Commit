@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { getConfig } from "../services/config";
-import { getStagedDiff } from "../services/git";
+import { getStagedDiff, getWorkingTreeDiff, stageAllChanges } from "../services/git";
 import { generateCommitMessage } from "../services/ollama";
 
 export async function runGenerateCommit() {
@@ -14,10 +14,8 @@ export async function runGenerateCommit() {
   const cwd = workspaceFolder.uri.fsPath;
   const config = getConfig();
 
-  const diff = await getStagedDiff(cwd);
-
+  const diff = await resolveDiff(cwd);
   if (!diff) {
-    vscode.window.showWarningMessage("No staged changes found");
     return;
   }
 
@@ -57,4 +55,35 @@ export async function runGenerateCommit() {
       vscode.window.showInformationMessage("Commit message generated");
     }
   );
+}
+
+async function resolveDiff(cwd: string): Promise<string | null> {
+  const stagedDiff = await getStagedDiff(cwd);
+  if (stagedDiff) {
+    return stagedDiff;
+  }
+
+  const workingTreeDiff = await getWorkingTreeDiff(cwd);
+  if (!workingTreeDiff) {
+    vscode.window.showWarningMessage("No changes found");
+    return null;
+  }
+
+  const action = await vscode.window.showWarningMessage(
+    "No staged changes found",
+    { modal: true },
+    "Stage All and Generate",
+    "Use Unstaged Changes"
+  );
+
+  if (action === "Stage All and Generate") {
+    await stageAllChanges(cwd);
+    return getStagedDiff(cwd);
+  }
+
+  if (action === "Use Unstaged Changes") {
+    return workingTreeDiff;
+  }
+
+  return null;
 }

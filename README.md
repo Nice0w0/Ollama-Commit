@@ -9,6 +9,8 @@ VS Code extension for generating git commit messages from staged changes using a
 - Writes the generated message into the Source Control input box
 - Exposes settings for model, system prompt, base URL, temperature, and diff size
 - Includes a dedicated settings page with model picker and system prompt editor
+- Automatically falls back to common Windows host addresses when running inside WSL
+- Adds quick actions to the Source Control toolbar for generating commit messages and opening settings
 
 ## Settings
 
@@ -38,4 +40,5 @@ Press `F5` in VS Code to launch the extension host.
 2. Open the Command Palette.
 3. Run `Ollama Commit: Generate Commit Message`.
 
-To jump straight to the extension settings page, run `Ollama Commit: Open Settings Page`.
+To jump straight to the extension 
+settings page, run `Ollama Commit: Open Settings Page`.

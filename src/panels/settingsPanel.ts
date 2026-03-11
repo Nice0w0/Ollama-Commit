@@ -8,6 +8,7 @@ type SettingsState = {
   systemPrompt: string;
   models: string[];
   error: string | null;
+  resolvedBaseUrl: string | null;
 };
 
 type IncomingMessage =
@@ -94,9 +95,12 @@ export class SettingsPanel {
 
     let models: string[] = [];
     let error: string | null = null;
+    let resolvedBaseUrl: string | null = null;
 
     try {
-      models = await listOllamaModels(baseUrl);
+      const result = await listOllamaModels(baseUrl);
+      models = result.models;
+      resolvedBaseUrl = result.resolvedBaseUrl;
     } catch (panelError) {
       error = panelError instanceof Error ? panelError.message : String(panelError);
     }
@@ -107,6 +111,7 @@ export class SettingsPanel {
       systemPrompt: config.systemPrompt,
       models,
       error,
+      resolvedBaseUrl,
     };
 
     await this.panel.webview.postMessage({
@@ -369,6 +374,8 @@ export class SettingsPanel {
 
       if (payload.error) {
         setStatus(payload.error, "error");
+      } else if (payload.resolvedBaseUrl && payload.resolvedBaseUrl !== payload.baseUrl) {
+        setStatus("Connected through " + payload.resolvedBaseUrl + " while keeping your saved URL unchanged.", "ok");
       } else if ((payload.models || []).length > 0) {
         setStatus("Models loaded from Ollama.", "ok");
       } else {
