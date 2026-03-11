@@ -15,6 +15,8 @@ export async function getWorkingTreeDiff(cwd: string): Promise<string> {
   return stdout?.trim() || "";
 }
 
+
+
 export async function stageAllChanges(cwd: string): Promise<void> {
   await runGit(cwd, ["add", "-A"]);
 }
