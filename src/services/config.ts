@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 
 export const defaultSystemPrompt =
-  "You are an assistant that writes concise, clear, professional git commit messages based on staged diff. Prefer conventional commits. Return only the commit message.";
+  "You are an assistant that writes concise, clear, professional git commit messages based on staged diff. Prefer conventional commits. Do not output any thinking, reasoning, analysis, or XML-style thinking tags. Return only the final commit message.";
 
 export type OllamaCommitConfig = {
   baseUrl: string;

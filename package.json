@@ -66,7 +66,7 @@
         },
         "ollamacommit.systemPrompt": {
           "type": "string",
-          "default": "You are an assistant that writes concise, clear, professional git commit messages based on staged diff. Prefer conventional commits. Return only the commit message.",
+          "default": "You are an assistant that writes concise, clear, professional git commit messages based on staged diff. Prefer conventional commits. Do not output any thinking, reasoning, analysis, or XML-style thinking tags. Return only the final commit message.",
           "markdownDescription": "System prompt sent to Ollama before the staged diff."
         },
         "ollamacommit.maxDiffChars": {

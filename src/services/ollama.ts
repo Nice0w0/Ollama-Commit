@@ -15,7 +15,7 @@ type OllamaTagsResponse = {
 };
 
 type OllamaChatResponse = {
-  message?: { content?: string };
+  message?: { content?: string; thinking?: string };
 };
 
 type ResolvedModels = {
@@ -42,6 +42,7 @@ export async function generateCommitMessage(params: GenerateCommitParams): Promi
       body: JSON.stringify({
         model: params.model,
         stream: false,
+        think: false,
         messages: [
           {
             role: "system",
@@ -59,7 +60,7 @@ export async function generateCommitMessage(params: GenerateCommitParams): Promi
     }
   );
 
-  return (data.message?.content || "").trim();
+  return sanitizeCommitMessage(data.message?.content || "");
 }
 
 export async function listOllamaModels(baseUrl: string): Promise<ResolvedModels> {
@@ -204,4 +205,12 @@ function parseRouteHexIp(value: string): string | null {
     .map((octet) => Number.parseInt(octet, 16))
     .reverse()
     .join(".");
+}
+
+function sanitizeCommitMessage(content: string): string {
+  return content
+    .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .replace(/<\/think>/gi, "")
+    .replace(/^\s*thinking:\s*/i, "")
+    .trim();
 }
