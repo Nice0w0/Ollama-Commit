@@ -47,6 +47,7 @@ export async function runGenerateCommit() {
         baseUrl: config.baseUrl,
         model: config.model,
         systemPrompt: config.systemPrompt,
+        enableThinking: config.enableThinking,
         diff: trimmedDiff,
         temperature: config.temperature
       });

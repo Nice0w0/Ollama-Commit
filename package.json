@@ -69,6 +69,11 @@
           "default": "You are an assistant that writes concise, clear, professional git commit messages based on staged diff. Prefer conventional commits. Do not output any thinking, reasoning, analysis, or XML-style thinking tags. Return only the final commit message.",
           "markdownDescription": "System prompt sent to Ollama before the staged diff."
         },
+        "ollamacommit.enableThinking": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow Ollama models that support thinking/reasoning mode to use it internally before returning the final commit message."
+        },
         "ollamacommit.maxDiffChars": {
           "type": "number",
           "default": 12000,

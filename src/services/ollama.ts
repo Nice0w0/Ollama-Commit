@@ -4,6 +4,7 @@ export type GenerateCommitParams = {
   baseUrl: string;
   model: string;
   systemPrompt: string;
+  enableThinking: boolean;
   diff: string;
   temperature: number;
 };
@@ -42,7 +43,7 @@ export async function generateCommitMessage(params: GenerateCommitParams): Promi
       body: JSON.stringify({
         model: params.model,
         stream: false,
-        think: false,
+        think: params.enableThinking,
         messages: [
           {
             role: "system",

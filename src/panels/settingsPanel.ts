@@ -6,6 +6,7 @@ type SettingsState = {
   baseUrl: string;
   model: string;
   systemPrompt: string;
+  enableThinking: boolean;
   models: string[];
   error: string | null;
   resolvedBaseUrl: string | null;
@@ -14,7 +15,7 @@ type SettingsState = {
 type IncomingMessage =
   | { type: "ready" }
   | { type: "refreshModels"; baseUrl: string }
-  | { type: "save"; baseUrl: string; model: string; systemPrompt: string };
+  | { type: "save"; baseUrl: string; model: string; systemPrompt: string; enableThinking: boolean };
 
 export class SettingsPanel {
   private static currentPanel: SettingsPanel | undefined;
@@ -82,6 +83,7 @@ export class SettingsPanel {
         baseUrl: message.baseUrl.trim(),
         model: message.model.trim(),
         systemPrompt: message.systemPrompt.trim(),
+        enableThinking: message.enableThinking,
       });
 
       vscode.window.showInformationMessage("Ollama Commit settings saved");
@@ -109,6 +111,7 @@ export class SettingsPanel {
       baseUrl,
       model: config.model,
       systemPrompt: config.systemPrompt,
+      enableThinking: config.enableThinking,
       models,
       error,
       resolvedBaseUrl,
@@ -218,6 +221,33 @@ export class SettingsPanel {
       line-height: 1.5;
     }
 
+    .checkbox-row {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      padding: 14px 16px;
+      border: 1px solid var(--vscode-input-border, var(--vscode-panel-border));
+      border-radius: 12px;
+      background: var(--vscode-input-background);
+    }
+
+    .checkbox-row input[type="checkbox"] {
+      width: 16px;
+      height: 16px;
+      margin: 2px 0 0;
+      padding: 0;
+      flex: none;
+    }
+
+    .checkbox-copy {
+      display: grid;
+      gap: 4px;
+    }
+
+    .checkbox-copy label {
+      margin: 0;
+    }
+
     .hint {
       font-size: 12px;
       opacity: 0.75;
@@ -308,6 +338,16 @@ export class SettingsPanel {
         <textarea id="systemPrompt" placeholder="Describe how the assistant should write commit messages"></textarea>
       </div>
 
+      <div class="field">
+        <div class="checkbox-row">
+          <input id="enableThinking" type="checkbox" />
+          <div class="checkbox-copy">
+            <label for="enableThinking">Enable Thinking</label>
+            <div class="hint">Allow models that support reasoning/thinking mode to use it internally before returning the final commit message.</div>
+          </div>
+        </div>
+      </div>
+
       <div id="status" class="status"></div>
 
       <div class="actions">
@@ -322,6 +362,7 @@ export class SettingsPanel {
     const modelSelect = document.getElementById("modelSelect");
     const modelInput = document.getElementById("modelInput");
     const systemPromptInput = document.getElementById("systemPrompt");
+    const enableThinkingInput = document.getElementById("enableThinking");
     const status = document.getElementById("status");
     const refreshButton = document.getElementById("refreshButton");
     const saveButton = document.getElementById("saveButton");
@@ -369,6 +410,7 @@ export class SettingsPanel {
 
       baseUrlInput.value = payload.baseUrl || "";
       systemPromptInput.value = payload.systemPrompt || "";
+      enableThinkingInput.checked = Boolean(payload.enableThinking);
       modelInput.value = payload.model || "";
       setModels(payload.models || [], payload.model || "");
 
@@ -397,7 +439,8 @@ export class SettingsPanel {
         type: "save",
         baseUrl: baseUrlInput.value,
         model: modelInput.value,
-        systemPrompt: systemPromptInput.value
+        systemPrompt: systemPromptInput.value,
+        enableThinking: enableThinkingInput.checked
       });
     });
 
