@@ -1,0 +1,85 @@
+{
+  "name": "ollamacommit",
+  "displayName": "Ollama Commit",
+  "description": "Generate git commit messages in VS Code using a local Ollama model.",
+  "version": "0.0.1",
+  "publisher": "apichart",
+  "license": "MIT",
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Source Control",
+    "Other"
+  ],
+  "activationEvents": [
+    "onCommand:ollamacommit.generateCommit",
+    "onCommand:ollamacommit.openSettings"
+  ],
+  "main": "./dist/extension.js",
+  "contributes": {
+    "commands": [
+      {
+        "command": "ollamacommit.generateCommit",
+        "title": "Ollama Commit: Generate Commit Message",
+        "category": "Ollama Commit"
+      },
+      {
+        "command": "ollamacommit.openSettings",
+        "title": "Ollama Commit: Open Settings Page",
+        "category": "Ollama Commit"
+      }
+    ],
+    "configuration": {
+      "title": "Ollama Commit",
+      "properties": {
+        "ollamacommit.baseUrl": {
+          "type": "string",
+          "default": "http://127.0.0.1:11434",
+          "description": "Base URL for the local Ollama server."
+        },
+        "ollamacommit.model": {
+          "type": "string",
+          "default": "qwen2.5-coder:7b",
+          "description": "Ollama model to use for generating commit messages."
+        },
+        "ollamacommit.systemPrompt": {
+          "type": "string",
+          "default": "You are an assistant that writes concise, clear, professional git commit messages based on staged diff. Prefer conventional commits. Return only the commit message.",
+          "markdownDescription": "System prompt sent to Ollama before the staged diff."
+        },
+        "ollamacommit.maxDiffChars": {
+          "type": "number",
+          "default": 12000,
+          "minimum": 1000,
+          "description": "Maximum number of staged diff characters sent to the model."
+        },
+        "ollamacommit.temperature": {
+          "type": "number",
+          "default": 0.2,
+          "minimum": 0,
+          "maximum": 2,
+          "description": "Sampling temperature passed to Ollama."
+        },
+        "ollamacommit.copyToClipboard": {
+          "type": "boolean",
+          "default": false,
+          "description": "Also copy the generated commit message to the clipboard."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "compile": "npm run build",
+    "watch": "tsc -w -p .",
+    "vscode:prepublish": "npm run build",
+    "package": "vsce package"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.14",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.2.2",
+    "typescript": "^5.8.2"
+  }
+}
