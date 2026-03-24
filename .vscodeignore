@@ -1,3 +1,6 @@
 src/**
 tsconfig.json
 .gitignore
+dist/**/*.map
+media/generate-dark.svg
+media/generate-light.svg

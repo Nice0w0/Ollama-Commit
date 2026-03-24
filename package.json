@@ -2,7 +2,7 @@
   "name": "ollamacommit",
   "displayName": "Ollama Commit",
   "description": "Generate git commit messages in VS Code using a local Ollama model.",
-  "version": "0.0.3",
+  "version": "0.0.6",
   "publisher": "apichart",
   "icon": "media/icon.png",
   "license": "MIT",
@@ -101,7 +101,7 @@
     "compile": "npm run build",
     "watch": "tsc -w -p .",
     "vscode:prepublish": "npm run build",
-    "package": "vsce package"
+    "package": "vsce package --no-rewrite-relative-links"
   },
   "devDependencies": {
     "@types/node": "^22.13.14",

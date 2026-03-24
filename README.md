@@ -1,7 +1,7 @@
 # Ollama Commit
 
 <p align="center">
-  <img src="./ollama-commit.png" alt="Ollama Commit cover" width="860" />
+  <img src="./ollama-commit-title.png" alt="Ollama Commit cover" width="860" />
 </p>
 
 Generate Git commit messages in VS Code with Ollama.
