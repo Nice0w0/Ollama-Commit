@@ -1,5 +1,9 @@
 # Ollama Commit
 
+<p align="center">
+  <img src="./ollama-commit.png" alt="Ollama Commit cover" width="860" />
+</p>
+
 Generate Git commit messages in VS Code with Ollama.
 
 Ollama Commit is a lightweight VS Code extension that reads your Git diff, sends it to your local or remote Ollama server, and writes the generated commit message into the Source Control input box for you.

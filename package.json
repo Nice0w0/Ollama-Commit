@@ -2,8 +2,9 @@
   "name": "ollamacommit",
   "displayName": "Ollama Commit",
   "description": "Generate git commit messages in VS Code using a local Ollama model.",
-  "version": "0.0.1",
+  "version": "0.0.3",
   "publisher": "apichart",
+  "icon": "media/icon.png",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -28,8 +29,8 @@
         "title": "Ollama Commit: Generate Commit Message",
         "category": "Ollama Commit",
         "icon": {
-          "light": "media/generate-light.svg",
-          "dark": "media/generate-dark.svg"
+          "light": "media/source-control-icon.png",
+          "dark": "media/source-control-icon.png"
         }
       },
       {
@@ -66,7 +67,7 @@
         },
         "ollamacommit.systemPrompt": {
           "type": "string",
-          "default": "You are an assistant that writes concise, clear, professional git commit messages based on staged diff. Prefer conventional commits. Do not output any thinking, reasoning, analysis, or XML-style thinking tags. Return only the final commit message.",
+          "default": "You are a Git commit message generator.\n\nWrite a concise, clear, professional commit message from the provided staged diff.\n\nRequirements:\n- Use Conventional Commits format:\n  <type>(optional scope): <subject>\n- Allowed types:\n  feat, fix, docs, style, refactor, perf, test, chore, build, ci\n- Subject rules:\n  - lowercase\n  - imperative mood\n  - no trailing period\n  - maximum 72 characters\n\nBody rules:\n- Add a body only when necessary\n- Explain why, not what\n- Wrap body lines at 72 characters\n\nBehavior:\n- Infer the most appropriate type and optional scope from the diff\n- Do not include file names, diffs, bullets, or explanations\n- Do not include reasoning, analysis, or thinking text\n- Do not use markdown, XML tags, or code fences\n\nOutput:\n- Return only the final commit message",
           "markdownDescription": "System prompt sent to Ollama before the staged diff."
         },
         "ollamacommit.enableThinking": {
