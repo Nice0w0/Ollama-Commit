@@ -13,6 +13,7 @@ type SettingsState = {
   codexPath: string;
   systemPrompt: string;
   enableThinking: boolean;
+  ollamaUnavailableCooldownMs: number;
   models: string[];
   error: string | null;
   resolvedBaseUrl: string | null;
@@ -33,6 +34,7 @@ type IncomingMessage =
       codexPath: string;
       systemPrompt: string;
       enableThinking: boolean;
+      ollamaUnavailableCooldownMs: number;
     };
 
 type OutgoingMessage =
@@ -120,6 +122,7 @@ export class SettingsPanel {
             codexPath: message.codexPath.trim(),
             systemPrompt: message.systemPrompt.trim(),
             enableThinking: message.enableThinking,
+            ollamaUnavailableCooldownMs: Math.max(0, Number(message.ollamaUnavailableCooldownMs) || 0),
           });
 
           await this.panel.webview.postMessage({
@@ -171,6 +174,7 @@ export class SettingsPanel {
       codexPath: config.codexPath,
       systemPrompt: config.systemPrompt,
       enableThinking: config.enableThinking,
+      ollamaUnavailableCooldownMs: config.ollamaUnavailableCooldownMs,
       models,
       error,
       resolvedBaseUrl,
@@ -427,6 +431,12 @@ export class SettingsPanel {
       </div>
 
       <div class="field">
+        <label for="ollamaUnavailableCooldownMs">Ollama Unavailable Cooldown (ms)</label>
+        <input id="ollamaUnavailableCooldownMs" type="number" min="0" step="1000" placeholder="30000" />
+        <div class="hint">When Ollama cannot be reached, skip retrying it for this long and jump straight to fallbacks.</div>
+      </div>
+
+      <div class="field">
         <label for="systemPrompt">System Prompt</label>
         <textarea id="systemPrompt" placeholder="Describe how the assistant should write commit messages"></textarea>
       </div>
@@ -460,6 +470,7 @@ export class SettingsPanel {
     const geminiModelInput = document.getElementById("geminiModel");
     const openaiModelInput = document.getElementById("openaiModel");
     const codexPathInput = document.getElementById("codexPath");
+    const ollamaUnavailableCooldownMsInput = document.getElementById("ollamaUnavailableCooldownMs");
     const systemPromptInput = document.getElementById("systemPrompt");
     const enableThinkingInput = document.getElementById("enableThinking");
     const status = document.getElementById("status");
@@ -529,6 +540,7 @@ export class SettingsPanel {
       geminiModelInput.value = payload.geminiModel || "";
       openaiModelInput.value = payload.openaiModel || "";
       codexPathInput.value = payload.codexPath || "";
+      ollamaUnavailableCooldownMsInput.value = String(payload.ollamaUnavailableCooldownMs ?? 30000);
       setModels(payload.models || [], payload.model || "");
 
       if (payload.error) {
@@ -564,7 +576,8 @@ export class SettingsPanel {
         openaiModel: openaiModelInput.value,
         codexPath: codexPathInput.value,
         systemPrompt: systemPromptInput.value,
-        enableThinking: enableThinkingInput.checked
+        enableThinking: enableThinkingInput.checked,
+        ollamaUnavailableCooldownMs: Number(ollamaUnavailableCooldownMsInput.value)
       });
     });
 
