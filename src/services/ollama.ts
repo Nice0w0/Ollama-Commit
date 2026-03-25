@@ -62,6 +62,7 @@ type ResolvedModels = {
 
 const execFileAsync = promisify(execFile);
 const ollamaUnavailableUntilByBaseUrl = new Map<string, number>();
+const ollamaRecoveryProbeTimeoutMs = 1500;
 
 export async function generateCommitMessage(params: GenerateCommitParams): Promise<GenerateCommitResult> {
   const prompt = [
@@ -78,7 +79,25 @@ export async function generateCommitMessage(params: GenerateCommitParams): Promi
   );
 
   if (ollamaSkipMessage) {
-    failures.push(`Ollama: ${ollamaSkipMessage}`);
+    const recovered = await tryRecoverOllamaDuringCooldown(params.baseUrl);
+    if (recovered) {
+      try {
+        const message = await generateWithOllama(params, prompt);
+        clearOllamaUnavailable(params.baseUrl);
+        return {
+          message,
+          provider: "ollama",
+          model: params.model,
+        };
+      } catch (error) {
+        if (isOllamaReachabilityError(error) && params.ollamaUnavailableCooldownMs > 0) {
+          markOllamaUnavailable(params.baseUrl, params.ollamaUnavailableCooldownMs);
+        }
+        failures.push(`Ollama: ${formatError(error)}`);
+      }
+    } else {
+      failures.push(`Ollama: ${ollamaSkipMessage}`);
+    }
   } else {
     try {
       const message = await generateWithOllama(params, prompt);
@@ -194,6 +213,20 @@ async function generateWithOllama(params: GenerateCommitParams, prompt: string):
   );
 
   return requireCommitMessage(data.message?.content || "", "Ollama");
+}
+
+async function tryRecoverOllamaDuringCooldown(baseUrl: string): Promise<boolean> {
+  try {
+    await fetchOllamaJson<OllamaTagsResponse>(
+      baseUrl,
+      "/api/tags",
+      ollamaRecoveryProbeTimeoutMs
+    );
+    clearOllamaUnavailable(baseUrl);
+    return true;
+  } catch {
+    return false;
+  }
 }
 
 async function generateWithGroq(params: GenerateCommitParams, prompt: string): Promise<string> {

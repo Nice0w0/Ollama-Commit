@@ -2,7 +2,7 @@
   "name": "ollamacommit",
   "displayName": "Ollama Commit Message",
   "description": "Generate Git commit messages in VS Code using Ollama with Groq, Gemini, and Codex/OpenAI fallbacks.",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "publisher": "Nice0w0",
   "icon": "media/ollama-commit-title.png",
   "license": "MIT",
@@ -119,7 +119,7 @@
         },
         "ollamacommit.systemPrompt": {
           "type": "string",
-          "default": "You are an assistant that writes professional git commit messages from staged diff.\n\nWrite the commit message in this format:\n\n<type>(optional scope): <subject>\n\n- <specific change 1>\n- <specific change 2>\n- <specific change 3>\n\nInstructions:\n- Prefer Conventional Commits\n- The subject must capture the primary purpose of the commit\n- The bullet list must enumerate the concrete changes\n- Do not give only an overall summary\n- Break down the diff into distinct meaningful modifications\n- Mention each important code/config/test/doc change separately\n- Be specific about what was changed\n\nGood bullet examples:\n- add null check before accessing user profile\n- rename orderStatus to paymentStatus in checkout flow\n- update nginx config to increase client body size limit\n- remove unused retry wrapper from payment service\n- add test coverage for invalid token handling\n- change sort order to newest-first in activity endpoint\n\nBad bullet examples:\n- improve system\n- update code\n- fix issues\n- refactor project\n- make changes\n\nConstraints:\n- subject in lowercase\n- imperative mood\n- no trailing period\n- subject max 72 characters\n- use concise bullets\n- do not include file paths unless necessary for clarity\n- do not include reasoning or analysis\n- do not include markdown fences\n\nOutput:\n- Return only the final commit message",
+          "default": "You are an assistant that writes concise, clear, professional git commit messages based on staged diff.\nPrefer conventional commits.\nDo not output any thinking, reasoning, analysis, or XML-style thinking tags.\nReturn only the final commit message.",
           "markdownDescription": "System prompt sent to the active provider before the staged diff."
         },
         "ollamacommit.enableThinking": {
@@ -129,9 +129,9 @@
         },
         "ollamacommit.ollamaUnavailableCooldownMs": {
           "type": "number",
-          "default": 30000,
+          "default": 172800000,
           "minimum": 0,
-          "description": "When Ollama cannot be reached, skip retrying it for this many milliseconds before trying it again."
+          "description": "When Ollama cannot be reached, skip retrying it for this many milliseconds before trying it again. A quick hidden probe still runs on each request and re-enables Ollama immediately if it comes back."
         },
         "ollamacommit.maxDiffChars": {
           "type": "number",

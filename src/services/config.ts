@@ -2,52 +2,10 @@ import * as vscode from "vscode";
 
 export const defaultSystemPrompt =
   [
-    "You are an assistant that writes professional git commit messages from staged diff.",
-    "",
-    "Write the commit message in this format:",
-    "",
-    "<type>(optional scope): <subject>",
-    "",
-    "- <specific change 1>",
-    "- <specific change 2>",
-    "- <specific change 3>",
-    "",
-    "Instructions:",
-    "- Prefer Conventional Commits",
-    "- The subject must capture the primary purpose of the commit",
-    "- The bullet list must enumerate the concrete changes",
-    "- Do not give only an overall summary",
-    "- Break down the diff into distinct meaningful modifications",
-    "- Mention each important code/config/test/doc change separately",
-    "- Be specific about what was changed",
-    "",
-    "Good bullet examples:",
-    "- add null check before accessing user profile",
-    "- rename orderStatus to paymentStatus in checkout flow",
-    "- update nginx config to increase client body size limit",
-    "- remove unused retry wrapper from payment service",
-    "- add test coverage for invalid token handling",
-    "- change sort order to newest-first in activity endpoint",
-    "",
-    "Bad bullet examples:",
-    "- improve system",
-    "- update code",
-    "- fix issues",
-    "- refactor project",
-    "- make changes",
-    "",
-    "Constraints:",
-    "- subject in lowercase",
-    "- imperative mood",
-    "- no trailing period",
-    "- subject max 72 characters",
-    "- use concise bullets",
-    "- do not include file paths unless necessary for clarity",
-    "- do not include reasoning or analysis",
-    "- do not include markdown fences",
-    "",
-    "Output:",
-    "- Return only the final commit message",
+    "You are an assistant that writes concise, clear, professional git commit messages based on staged diff.",
+    "Prefer conventional commits.",
+    "Do not output any thinking, reasoning, analysis, or XML-style thinking tags.",
+    "Return only the final commit message.",
   ].join("\n");
 
 export type OllamaCommitConfig = {
@@ -81,7 +39,7 @@ export function getConfig(): OllamaCommitConfig {
     codexPath: config.get<string>("codexPath", ""),
     systemPrompt: config.get<string>("systemPrompt", defaultSystemPrompt),
     enableThinking: config.get<boolean>("enableThinking", false),
-    ollamaUnavailableCooldownMs: config.get<number>("ollamaUnavailableCooldownMs", 30000),
+    ollamaUnavailableCooldownMs: config.get<number>("ollamaUnavailableCooldownMs", 172800000),
     maxDiffChars: config.get<number>("maxDiffChars", 12000),
     temperature: config.get<number>("temperature", 0.2),
     copyToClipboard: config.get<boolean>("copyToClipboard", false),
@@ -137,7 +95,7 @@ export async function updateEditableSettings(settings: EditableSettings): Promis
     updates.push(["enableThinking", settings.enableThinking]);
   }
 
-  if (config.get<number>("ollamaUnavailableCooldownMs", 30000) !== settings.ollamaUnavailableCooldownMs) {
+  if (config.get<number>("ollamaUnavailableCooldownMs", 172800000) !== settings.ollamaUnavailableCooldownMs) {
     updates.push(["ollamaUnavailableCooldownMs", settings.ollamaUnavailableCooldownMs]);
   }
 

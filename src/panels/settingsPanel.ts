@@ -432,8 +432,8 @@ export class SettingsPanel {
 
       <div class="field">
         <label for="ollamaUnavailableCooldownMs">Ollama Unavailable Cooldown (ms)</label>
-        <input id="ollamaUnavailableCooldownMs" type="number" min="0" step="1000" placeholder="30000" />
-        <div class="hint">When Ollama cannot be reached, skip retrying it for this long and jump straight to fallbacks.</div>
+        <input id="ollamaUnavailableCooldownMs" type="number" min="0" step="1000" placeholder="172800000" />
+        <div class="hint">When Ollama cannot be reached, skip retrying it for this long and jump straight to fallbacks. Each request still does a quick hidden probe and re-enables Ollama immediately if it comes back.</div>
       </div>
 
       <div class="field">
@@ -540,7 +540,7 @@ export class SettingsPanel {
       geminiModelInput.value = payload.geminiModel || "";
       openaiModelInput.value = payload.openaiModel || "";
       codexPathInput.value = payload.codexPath || "";
-      ollamaUnavailableCooldownMsInput.value = String(payload.ollamaUnavailableCooldownMs ?? 30000);
+      ollamaUnavailableCooldownMsInput.value = String(payload.ollamaUnavailableCooldownMs ?? 172800000);
       setModels(payload.models || [], payload.model || "");
 
       if (payload.error) {
