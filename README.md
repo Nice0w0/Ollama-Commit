@@ -98,6 +98,7 @@ Or search for `Ollama Commit` in VS Code Settings.
 | `ollamacommit.codexPath` | Optional absolute path to the Codex CLI binary when the extension host PATH does not include it | `""` |
 | `ollamacommit.systemPrompt` | System prompt sent before the diff | Built-in prompt |
 | `ollamacommit.enableThinking` | Allow model thinking mode before the final answer | `false` |
+| `ollamacommit.ollamaUnavailableCooldownMs` | After an Ollama connection failure, skip retrying Ollama for this many milliseconds and jump straight to fallbacks | `30000` |
 | `ollamacommit.maxDiffChars` | Maximum diff characters sent to Ollama | `12000` |
 | `ollamacommit.temperature` | Sampling temperature | `0.2` |
 | `ollamacommit.copyToClipboard` | Also copy the result to the clipboard | `false` |
