@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import { getConfig } from "../services/config";
-import { getStagedDiff, getWorkingTreeDiff, stageAllChanges } from "../services/git";
+import { getRepositoryRoot, getStagedDiff, getWorkingTreeDiff, stageAllChanges } from "../services/git";
 import { generateCommitMessage } from "../services/ollama";
 
 type GitExtensionApi = {
@@ -18,7 +18,7 @@ type GitRepository = {
   };
 };
 
-export async function runGenerateCommit() {
+export async function runGenerateCommit(sourceControl?: vscode.SourceControl) {
   const workspaceFolder = vscode.workspace.workspaceFolders?.[0];
 
   if (!workspaceFolder) {
@@ -26,7 +26,13 @@ export async function runGenerateCommit() {
     return;
   }
 
-  const cwd = workspaceFolder.uri.fsPath;
+  const repositoryRoot = await resolveRepositoryRoot(sourceControl, workspaceFolder);
+  if (!repositoryRoot) {
+    vscode.window.showErrorMessage("No git repository found in the current workspace");
+    return;
+  }
+
+  const cwd = repositoryRoot.fsPath;
   const config = getConfig();
 
   const diff = await resolveDiff(cwd);
@@ -64,7 +70,7 @@ export async function runGenerateCommit() {
 
       const { message, provider, model } = result;
 
-      const insertedIntoInput = await tryInsertCommitMessage(workspaceFolder.uri, message);
+      const insertedIntoInput = await tryInsertCommitMessage(repositoryRoot, message);
 
       if (!insertedIntoInput || config.copyToClipboard) {
         await vscode.env.clipboard.writeText(message);
@@ -122,8 +128,73 @@ async function resolveDiff(cwd: string): Promise<string | null> {
   return null;
 }
 
-async function tryInsertCommitMessage(workspaceUri: vscode.Uri, message: string): Promise<boolean> {
-  const insertedWithGitApi = await tryInsertWithGitExtension(workspaceUri, message);
+async function resolveRepositoryRoot(
+  sourceControl: vscode.SourceControl | undefined,
+  workspaceFolder: vscode.WorkspaceFolder
+): Promise<vscode.Uri | null> {
+  if (sourceControl?.rootUri) {
+    return sourceControl.rootUri;
+  }
+
+  const repositories = await getGitRepositories();
+
+  const activeEditorUri = vscode.window.activeTextEditor?.document.uri;
+  if (activeEditorUri?.scheme === "file") {
+    const repository = pickRepository(repositories, activeEditorUri);
+    if (repository) {
+      return repository.rootUri;
+    }
+  }
+
+  const workspaceRepository = pickRepository(repositories, workspaceFolder.uri);
+  if (workspaceRepository) {
+    return workspaceRepository.rootUri;
+  }
+
+  if (repositories.length === 1) {
+    return repositories[0].rootUri;
+  }
+
+  if (repositories.length > 1) {
+    return pickRepositoryFromQuickPick(repositories);
+  }
+
+  const root = await getRepositoryRoot(workspaceFolder.uri.fsPath);
+  return root ? vscode.Uri.file(root) : null;
+}
+
+async function pickRepositoryFromQuickPick(repositories: GitRepository[]): Promise<vscode.Uri | null> {
+  const items = repositories.map((repository) => ({
+    label: vscode.workspace.asRelativePath(repository.rootUri),
+    description: repository.rootUri.fsPath,
+    rootUri: repository.rootUri,
+  }));
+
+  const picked = await vscode.window.showQuickPick(items, {
+    placeHolder: "Select the git repository to generate a commit message for",
+  });
+
+  return picked?.rootUri ?? null;
+}
+
+async function getGitRepositories(): Promise<GitRepository[]> {
+  const gitApi = await getGitApi();
+  return gitApi?.repositories ?? [];
+}
+
+async function getGitApi(): Promise<GitApi | null> {
+  const gitExtension = vscode.extensions.getExtension<GitExtensionApi>("vscode.git");
+  if (!gitExtension) {
+    return null;
+  }
+
+  return gitExtension.isActive
+    ? gitExtension.exports.getAPI(1)
+    : (await gitExtension.activate()).getAPI(1);
+}
+
+async function tryInsertCommitMessage(repositoryUri: vscode.Uri, message: string): Promise<boolean> {
+  const insertedWithGitApi = await tryInsertWithGitExtension(repositoryUri, message);
   if (insertedWithGitApi) {
     return true;
   }
@@ -137,17 +208,13 @@ async function tryInsertCommitMessage(workspaceUri: vscode.Uri, message: string)
   return false;
 }
 
-async function tryInsertWithGitExtension(workspaceUri: vscode.Uri, message: string): Promise<boolean> {
-  const gitExtension = vscode.extensions.getExtension<GitExtensionApi>("vscode.git");
-  if (!gitExtension) {
+async function tryInsertWithGitExtension(repositoryUri: vscode.Uri, message: string): Promise<boolean> {
+  const gitApi = await getGitApi();
+  if (!gitApi) {
     return false;
   }
 
-  const gitApi = gitExtension.isActive
-    ? gitExtension.exports.getAPI(1)
-    : (await gitExtension.activate()).getAPI(1);
-
-  const repository = pickRepository(gitApi.repositories, workspaceUri);
+  const repository = pickRepository(gitApi.repositories, repositoryUri);
   if (!repository) {
     return false;
   }
@@ -156,12 +223,24 @@ async function tryInsertWithGitExtension(workspaceUri: vscode.Uri, message: stri
   return true;
 }
 
-function pickRepository(repositories: GitRepository[], workspaceUri: vscode.Uri): GitRepository | undefined {
-  const workspacePath = workspaceUri.fsPath;
+function pickRepository(repositories: GitRepository[], targetUri: vscode.Uri): GitRepository | undefined {
+  const targetPath = targetUri.fsPath;
 
   return repositories
-    .filter((repository) => workspacePath.startsWith(repository.rootUri.fsPath))
+    .filter((repository) => isPathInside(targetPath, repository.rootUri.fsPath))
     .sort((left, right) => right.rootUri.fsPath.length - left.rootUri.fsPath.length)[0];
+}
+
+function isPathInside(target: string, parent: string): boolean {
+  if (target === parent) {
+    return true;
+  }
+
+  const parentWithSeparator = parent.endsWith("/") || parent.endsWith("\\")
+    ? parent
+    : `${parent}${target.includes("\\") ? "\\" : "/"}`;
+
+  return target.startsWith(parentWithSeparator);
 }
 
 async function showCommitMessagePreview(message: string): Promise<void> {

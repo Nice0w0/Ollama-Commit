@@ -19,6 +19,15 @@ export async function stageAllChanges(cwd: string): Promise<void> {
   await runGit(cwd, ["add", "-A"]);
 }
 
+export async function getRepositoryRoot(cwd: string): Promise<string | null> {
+  try {
+    const { stdout } = await runGit(cwd, ["rev-parse", "--show-toplevel"]);
+    return stdout.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
 async function runGit(cwd: string, args: string[]): Promise<{ stdout: string; stderr: string }> {
   return execFileAsync("git", args, {
     cwd,
