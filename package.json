@@ -2,17 +2,17 @@
   "name": "ollamacommit",
   "displayName": "Ollama Commit Message",
   "description": "Generate Git commit messages in VS Code using Ollama with Codex, Claude Code, Groq, and Gemini fallbacks.",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "Nice0w0",
   "icon": "media/ollama-commit-title.png",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Nice0w0/ollamacommit.git"
+    "url": "https://github.com/Nice0w0/Ollama-Commit.git"
   },
-  "homepage": "https://github.com/Nice0w0/ollamacommit#readme",
+  "homepage": "https://github.com/Nice0w0/Ollama-Commit#readme",
   "bugs": {
-    "url": "https://github.com/Nice0w0/ollamacommit/issues"
+    "url": "https://github.com/Nice0w0/Ollama-Commit/issues"
   },
   "engines": {
     "vscode": "^1.90.0"
@@ -153,7 +153,7 @@
           "type": "number",
           "default": 172800000,
           "minimum": 0,
-          "description": "When Ollama cannot be reached, skip retrying it for this many milliseconds before trying it again. A quick hidden probe still runs on each request and re-enables Ollama immediately if it comes back."
+          "description": "When Ollama cannot be reached, skip retrying it for this many milliseconds. While skipping, it is periodically re-probed and re-enabled once a generation succeeds again."
         },
         "ollamacommit.maxDiffChars": {
           "type": "number",
