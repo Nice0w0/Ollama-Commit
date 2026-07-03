@@ -411,10 +411,11 @@ async function generateWithClaudeCode(params: GenerateCommitParams, prompt: stri
   const claudeExecutable = await resolveClaudeExecutable(params.claudePath);
   const configuredModel = params.claudeModel.trim();
 
+  // Note: --bare (skip hooks/LSP/plugins) also disables the CLI's auth in some
+  // environments, producing "Not logged in" and a non-zero exit, so it is not used.
   const args = [
     "-p",
     "--no-session-persistence",
-    "--bare",
   ];
 
   if (configuredModel) {
