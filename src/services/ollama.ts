@@ -109,7 +109,12 @@ function spawnWithClosedStdin(
   });
 }
 const ollamaUnavailableUntilByBaseUrl = new Map<string, number>();
+const ollamaLastRecoveryAttemptByBaseUrl = new Map<string, number>();
 const ollamaRecoveryProbeTimeoutMs = 1500;
+// A hung /api/chat can time out (120s) even while /api/tags answers instantly,
+// so cap how often Ollama is re-probed/re-attempted during cooldown instead of
+// retrying on every request.
+const ollamaRecoveryIntervalMs = 60000;
 
 export async function generateCommitMessage(params: GenerateCommitParams): Promise<GenerateCommitResult> {
   const prompt = [
@@ -285,13 +290,24 @@ async function generateWithOllama(params: GenerateCommitParams, prompt: string):
 }
 
 async function tryRecoverOllamaDuringCooldown(baseUrl: string): Promise<boolean> {
+  const key = normalizeBaseUrl(baseUrl);
+  const lastAttempt = ollamaLastRecoveryAttemptByBaseUrl.get(key) ?? 0;
+  if (Date.now() - lastAttempt < ollamaRecoveryIntervalMs) {
+    // Recently attempted and it didn't recover — keep skipping Ollama so a hung
+    // /api/chat can't cost the full timeout on every request.
+    return false;
+  }
+
+  ollamaLastRecoveryAttemptByBaseUrl.set(key, Date.now());
+
   try {
+    // /api/tags only proves the server is reachable, not that generation works,
+    // so the cooldown is cleared by an actual /api/chat success (below), not here.
     await fetchOllamaJson<OllamaTagsResponse>(
       baseUrl,
       "/api/tags",
       ollamaRecoveryProbeTimeoutMs
     );
-    clearOllamaUnavailable(baseUrl);
     return true;
   } catch {
     return false;
@@ -675,14 +691,17 @@ function markOllamaUnavailable(baseUrl: string, cooldownMs: number): void {
     return;
   }
 
-  ollamaUnavailableUntilByBaseUrl.set(
-    normalizeBaseUrl(baseUrl),
-    Date.now() + cooldownMs
-  );
+  const key = normalizeBaseUrl(baseUrl);
+  ollamaUnavailableUntilByBaseUrl.set(key, Date.now() + cooldownMs);
+  // Start the recovery clock so the next in-cooldown request skips fast rather
+  // than immediately re-attempting a possibly-hung generation.
+  ollamaLastRecoveryAttemptByBaseUrl.set(key, Date.now());
 }
 
 function clearOllamaUnavailable(baseUrl: string): void {
-  ollamaUnavailableUntilByBaseUrl.delete(normalizeBaseUrl(baseUrl));
+  const key = normalizeBaseUrl(baseUrl);
+  ollamaUnavailableUntilByBaseUrl.delete(key);
+  ollamaLastRecoveryAttemptByBaseUrl.delete(key);
 }
 
 async function hasCodexLogin(): Promise<boolean> {
