@@ -76,6 +76,8 @@ export async function runGenerateCommit(sourceControl?: vscode.SourceControl) {
         claudeModel: config.claudeModel,
         systemPrompt: config.systemPrompt,
         enableThinking: config.enableThinking,
+        enableCodex: config.enableCodex,
+        enableClaude: config.enableClaude,
         ollamaUnavailableCooldownMs: config.ollamaUnavailableCooldownMs,
         diff: trimmedDiff,
         temperature: config.temperature,

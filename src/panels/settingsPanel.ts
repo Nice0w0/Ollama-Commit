@@ -15,6 +15,8 @@ type SettingsState = {
   claudeModel: string;
   systemPrompt: string;
   enableThinking: boolean;
+  enableCodex: boolean;
+  enableClaude: boolean;
   ollamaUnavailableCooldownMs: number;
   models: string[];
   error: string | null;
@@ -38,6 +40,8 @@ type IncomingMessage =
       claudeModel: string;
       systemPrompt: string;
       enableThinking: boolean;
+      enableCodex: boolean;
+      enableClaude: boolean;
       ollamaUnavailableCooldownMs: number;
     };
 
@@ -128,6 +132,8 @@ export class SettingsPanel {
             claudeModel: message.claudeModel.trim(),
             systemPrompt: message.systemPrompt.trim(),
             enableThinking: message.enableThinking,
+            enableCodex: message.enableCodex,
+            enableClaude: message.enableClaude,
             ollamaUnavailableCooldownMs: Math.max(0, Number(message.ollamaUnavailableCooldownMs) || 0),
           });
 
@@ -182,6 +188,8 @@ export class SettingsPanel {
       claudeModel: config.claudeModel,
       systemPrompt: config.systemPrompt,
       enableThinking: config.enableThinking,
+      enableCodex: config.enableCodex,
+      enableClaude: config.enableClaude,
       ollamaUnavailableCooldownMs: config.ollamaUnavailableCooldownMs,
       models,
       error,
@@ -471,6 +479,26 @@ export class SettingsPanel {
         </div>
       </div>
 
+      <div class="field">
+        <div class="checkbox-row">
+          <input id="enableCodex" type="checkbox" />
+          <div class="checkbox-copy">
+            <label for="enableCodex">Enable Codex CLI fallback</label>
+            <div class="hint">Off by default. When enabled, falls back to the Codex CLI after Ollama, Groq, and Gemini — this uses your local Codex login and may incur OpenAI/ChatGPT costs.</div>
+          </div>
+        </div>
+      </div>
+
+      <div class="field">
+        <div class="checkbox-row">
+          <input id="enableClaude" type="checkbox" />
+          <div class="checkbox-copy">
+            <label for="enableClaude">Enable Claude CLI fallback</label>
+            <div class="hint">Off by default. When enabled, falls back to the Claude CLI after Ollama, Groq, and Gemini — this uses your local Claude login and may incur Anthropic costs.</div>
+          </div>
+        </div>
+      </div>
+
       <div id="status" class="status"></div>
 
       <div class="actions">
@@ -495,6 +523,8 @@ export class SettingsPanel {
     const ollamaUnavailableCooldownMsInput = document.getElementById("ollamaUnavailableCooldownMs");
     const systemPromptInput = document.getElementById("systemPrompt");
     const enableThinkingInput = document.getElementById("enableThinking");
+    const enableCodexInput = document.getElementById("enableCodex");
+    const enableClaudeInput = document.getElementById("enableClaude");
     const status = document.getElementById("status");
     const refreshButton = document.getElementById("refreshButton");
     const saveButton = document.getElementById("saveButton");
@@ -555,6 +585,8 @@ export class SettingsPanel {
       baseUrlInput.value = payload.baseUrl || "";
       systemPromptInput.value = payload.systemPrompt || "";
       enableThinkingInput.checked = Boolean(payload.enableThinking);
+      enableCodexInput.checked = Boolean(payload.enableCodex);
+      enableClaudeInput.checked = Boolean(payload.enableClaude);
       modelInput.value = payload.model || "";
       groqApiKeyInput.value = payload.groqApiKey || "";
       groqModelInput.value = payload.groqModel || "";
@@ -572,7 +604,7 @@ export class SettingsPanel {
       } else if (payload.resolvedBaseUrl && payload.resolvedBaseUrl !== payload.baseUrl) {
         setStatus("Connected through " + payload.resolvedBaseUrl + " while keeping your saved URL unchanged.", "ok");
       } else if ((payload.models || []).length > 0) {
-        setStatus("Models loaded from Ollama. Fallback order: Codex, Claude Code, Groq, then Gemini.", "ok");
+        setStatus("Models loaded from Ollama. Fallback order: Groq, Gemini, then the Codex and Claude CLIs if enabled.", "ok");
       } else {
         setStatus("");
       }
@@ -603,6 +635,8 @@ export class SettingsPanel {
         claudeModel: claudeModelInput.value,
         systemPrompt: systemPromptInput.value,
         enableThinking: enableThinkingInput.checked,
+        enableCodex: enableCodexInput.checked,
+        enableClaude: enableClaudeInput.checked,
         ollamaUnavailableCooldownMs: Number(ollamaUnavailableCooldownMsInput.value)
       });
     });

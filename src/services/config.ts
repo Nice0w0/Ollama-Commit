@@ -21,6 +21,8 @@ export type OllamaCommitConfig = {
   claudeModel: string;
   systemPrompt: string;
   enableThinking: boolean;
+  enableCodex: boolean;
+  enableClaude: boolean;
   ollamaUnavailableCooldownMs: number;
   maxDiffChars: number;
   temperature: number;
@@ -43,6 +45,8 @@ export function getConfig(): OllamaCommitConfig {
     claudeModel: getString(config, "claudeModel", "sonnet"),
     systemPrompt: getString(config, "systemPrompt", defaultSystemPrompt),
     enableThinking: getBoolean(config, "enableThinking", false),
+    enableCodex: getBoolean(config, "enableCodex", false),
+    enableClaude: getBoolean(config, "enableClaude", false),
     ollamaUnavailableCooldownMs: getNumber(config, "ollamaUnavailableCooldownMs", 172800000),
     maxDiffChars: getNumber(config, "maxDiffChars", 12000),
     temperature: getNumber(config, "temperature", 0.2),
@@ -71,7 +75,7 @@ function getBoolean(config: vscode.WorkspaceConfiguration, key: string, fallback
 
 export type EditableSettings = Pick<
   OllamaCommitConfig,
-  "baseUrl" | "model" | "groqApiKey" | "groqModel" | "geminiApiKey" | "geminiModel" | "openaiModel" | "codexPath" | "claudePath" | "claudeModel" | "systemPrompt" | "enableThinking" | "ollamaUnavailableCooldownMs"
+  "baseUrl" | "model" | "groqApiKey" | "groqModel" | "geminiApiKey" | "geminiModel" | "openaiModel" | "codexPath" | "claudePath" | "claudeModel" | "systemPrompt" | "enableThinking" | "enableCodex" | "enableClaude" | "ollamaUnavailableCooldownMs"
 >;
 
 export async function updateEditableSettings(settings: EditableSettings): Promise<void> {
@@ -124,6 +128,14 @@ export async function updateEditableSettings(settings: EditableSettings): Promis
 
   if (config.get<boolean>("enableThinking", false) !== settings.enableThinking) {
     updates.push(["enableThinking", settings.enableThinking]);
+  }
+
+  if (config.get<boolean>("enableCodex", false) !== settings.enableCodex) {
+    updates.push(["enableCodex", settings.enableCodex]);
+  }
+
+  if (config.get<boolean>("enableClaude", false) !== settings.enableClaude) {
+    updates.push(["enableClaude", settings.enableClaude]);
   }
 
   if (config.get<number>("ollamaUnavailableCooldownMs", 172800000) !== settings.ollamaUnavailableCooldownMs) {

@@ -18,6 +18,8 @@ export type GenerateCommitParams = {
   claudeModel: string;
   systemPrompt: string;
   enableThinking: boolean;
+  enableCodex: boolean;
+  enableClaude: boolean;
   ollamaUnavailableCooldownMs: number;
   diff: string;
   temperature: number;
@@ -160,36 +162,6 @@ export async function generateCommitMessage(params: GenerateCommitParams): Promi
     }
   }
 
-  if (await hasCodexLogin()) {
-    try {
-      const message = await generateWithCodex(params, prompt);
-      return {
-        message,
-        provider: "codex",
-        model: params.openaiModel || "codex default",
-      };
-    } catch (error) {
-      failures.push(`Codex CLI: ${formatError(error)}`);
-    }
-  } else {
-    failures.push("Codex CLI: skipped because no local Codex login was found");
-  }
-
-  if (await hasClaudeCodeCli(params.claudePath)) {
-    try {
-      const message = await generateWithClaudeCode(params, prompt);
-      return {
-        message,
-        provider: "claude",
-        model: params.claudeModel || "claude default",
-      };
-    } catch (error) {
-      failures.push(`Claude Code: ${formatError(error)}`);
-    }
-  } else {
-    failures.push("Claude Code: skipped because the claude CLI was not found");
-  }
-
   if (params.groqApiKey.trim()) {
     try {
       const message = await generateWithGroq(params, prompt);
@@ -218,6 +190,43 @@ export async function generateCommitMessage(params: GenerateCommitParams): Promi
     }
   } else {
     failures.push("Gemini: skipped because no API key is configured");
+  }
+
+  // CLI providers run last and only when explicitly enabled: they use the
+  // machine's Codex/Claude login and can incur usage costs, so they must not
+  // pre-empt the user-configured API providers or run without opt-in.
+  if (!params.enableCodex) {
+    failures.push("Codex CLI: skipped because ollamacommit.enableCodex is disabled");
+  } else if (!(await hasCodexLogin())) {
+    failures.push("Codex CLI: skipped because no local Codex login was found");
+  } else {
+    try {
+      const message = await generateWithCodex(params, prompt);
+      return {
+        message,
+        provider: "codex",
+        model: params.openaiModel || "codex default",
+      };
+    } catch (error) {
+      failures.push(`Codex CLI: ${formatError(error)}`);
+    }
+  }
+
+  if (!params.enableClaude) {
+    failures.push("Claude Code: skipped because ollamacommit.enableClaude is disabled");
+  } else if (!(await hasClaudeCodeCli(params.claudePath))) {
+    failures.push("Claude Code: skipped because the claude CLI was not found");
+  } else {
+    try {
+      const message = await generateWithClaudeCode(params, prompt);
+      return {
+        message,
+        provider: "claude",
+        model: params.claudeModel || "claude default",
+      };
+    } catch (error) {
+      failures.push(`Claude Code: ${formatError(error)}`);
+    }
   }
 
   throw new Error(`Unable to generate a commit message. ${failures.join(" | ")}`);

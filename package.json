@@ -127,7 +127,17 @@
         "ollamacommit.claudeModel": {
           "type": "string",
           "default": "sonnet",
-          "description": "Claude Code model used as a fallback between Codex and Groq. Examples: haiku, sonnet, opus."
+          "description": "Claude Code model used for the Claude CLI fallback. Examples: haiku, sonnet, opus."
+        },
+        "ollamacommit.enableCodex": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow falling back to the Codex CLI (codex exec) when Ollama and the configured Groq/Gemini providers are unavailable. Off by default because it uses your local Codex login and may incur OpenAI/ChatGPT usage costs."
+        },
+        "ollamacommit.enableClaude": {
+          "type": "boolean",
+          "default": false,
+          "description": "Allow falling back to the Claude CLI (claude) when Ollama and the configured Groq/Gemini providers are unavailable. Off by default because it uses your local Claude login and may incur Anthropic usage costs."
         },
         "ollamacommit.systemPrompt": {
           "type": "string",
