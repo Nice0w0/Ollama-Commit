@@ -1,7 +1,18 @@
+import * as path from "node:path";
 import * as vscode from "vscode";
 import { getConfig } from "../services/config";
-import { getRepositoryRoot, getStagedDiff, getWorkingTreeDiff, stageAllChanges } from "../services/git";
+import {
+  getRepositoryRoot,
+  getStagedDiff,
+  getWorkingTreeDiff,
+  hasUntrackedFiles,
+  stageAllChanges,
+} from "../services/git";
 import { generateCommitMessage } from "../services/ollama";
+
+// Distinguishes "the user dismissed the repository picker" from "no repository
+// was found", so cancelling the quick pick doesn't surface an error.
+const REPOSITORY_SELECTION_CANCELLED = Symbol("repository-selection-cancelled");
 
 type GitExtensionApi = {
   getAPI(version: 1): GitApi;
@@ -27,6 +38,9 @@ export async function runGenerateCommit(sourceControl?: vscode.SourceControl) {
   }
 
   const repositoryRoot = await resolveRepositoryRoot(sourceControl, workspaceFolder);
+  if (repositoryRoot === REPOSITORY_SELECTION_CANCELLED) {
+    return;
+  }
   if (!repositoryRoot) {
     vscode.window.showErrorMessage("No git repository found in the current workspace");
     return;
@@ -104,24 +118,30 @@ async function resolveDiff(cwd: string): Promise<string | null> {
   }
 
   const workingTreeDiff = await getWorkingTreeDiff(cwd);
-  if (!workingTreeDiff) {
+  const hasUntracked = workingTreeDiff ? false : await hasUntrackedFiles(cwd);
+  if (!workingTreeDiff && !hasUntracked) {
     vscode.window.showWarningMessage("No changes found");
     return null;
   }
 
+  // "Use Unstaged Changes" only makes sense when there is a tracked-file diff;
+  // brand-new (untracked) files appear in a diff only after `git add -A`.
+  const stageAll = "Stage All and Generate";
+  const useUnstaged = "Use Unstaged Changes";
+  const choices = workingTreeDiff ? [stageAll, useUnstaged] : [stageAll];
+
   const action = await vscode.window.showWarningMessage(
     "No staged changes found",
     { modal: true },
-    "Stage All and Generate",
-    "Use Unstaged Changes"
+    ...choices
   );
 
-  if (action === "Stage All and Generate") {
+  if (action === stageAll) {
     await stageAllChanges(cwd);
     return getStagedDiff(cwd);
   }
 
-  if (action === "Use Unstaged Changes") {
+  if (action === useUnstaged) {
     return workingTreeDiff;
   }
 
@@ -131,7 +151,7 @@ async function resolveDiff(cwd: string): Promise<string | null> {
 async function resolveRepositoryRoot(
   sourceControl: vscode.SourceControl | undefined,
   workspaceFolder: vscode.WorkspaceFolder
-): Promise<vscode.Uri | null> {
+): Promise<vscode.Uri | null | typeof REPOSITORY_SELECTION_CANCELLED> {
   if (sourceControl?.rootUri) {
     return sourceControl.rootUri;
   }
@@ -156,11 +176,27 @@ async function resolveRepositoryRoot(
   }
 
   if (repositories.length > 1) {
-    return pickRepositoryFromQuickPick(repositories);
+    const picked = await pickRepositoryFromQuickPick(repositories);
+    return picked ?? REPOSITORY_SELECTION_CANCELLED;
   }
 
-  const root = await getRepositoryRoot(workspaceFolder.uri.fsPath);
-  return root ? vscode.Uri.file(root) : null;
+  // Fallback: ask git directly. Prefer the active editor's directory so a repo
+  // in a workspace subfolder is still found when the Git API hasn't surfaced it
+  // (e.g. a non-git parent folder opened over nested repositories).
+  const fallbackDirs: string[] = [];
+  if (activeEditorUri?.scheme === "file") {
+    fallbackDirs.push(path.dirname(activeEditorUri.fsPath));
+  }
+  fallbackDirs.push(workspaceFolder.uri.fsPath);
+
+  for (const dir of fallbackDirs) {
+    const root = await getRepositoryRoot(dir);
+    if (root) {
+      return vscode.Uri.file(root);
+    }
+  }
+
+  return null;
 }
 
 async function pickRepositoryFromQuickPick(repositories: GitRepository[]): Promise<vscode.Uri | null> {
@@ -232,15 +268,17 @@ function pickRepository(repositories: GitRepository[], targetUri: vscode.Uri): G
 }
 
 function isPathInside(target: string, parent: string): boolean {
-  if (target === parent) {
-    return true;
-  }
+  const relative = path.relative(normalizeCasing(parent), normalizeCasing(target));
+  return relative === "" || (!relative.startsWith("..") && !path.isAbsolute(relative));
+}
 
-  const parentWithSeparator = parent.endsWith("/") || parent.endsWith("\\")
-    ? parent
-    : `${parent}${target.includes("\\") ? "\\" : "/"}`;
-
-  return target.startsWith(parentWithSeparator);
+// macOS and Windows use case-insensitive filesystems, and VS Code may open a
+// folder via a differently-cased path than git reports. Compare case-insensitively
+// there so repository matching doesn't silently miss.
+function normalizeCasing(value: string): string {
+  return process.platform === "win32" || process.platform === "darwin"
+    ? value.toLowerCase()
+    : value;
 }
 
 async function showCommitMessagePreview(message: string): Promise<void> {
