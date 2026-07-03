@@ -149,6 +149,7 @@
           "type": "number",
           "default": 12000,
           "minimum": 1000,
+          "maximum": 100000,
           "description": "Maximum number of staged diff characters sent to the model."
         },
         "ollamacommit.temperature": {

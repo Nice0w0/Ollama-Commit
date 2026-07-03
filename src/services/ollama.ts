@@ -83,6 +83,8 @@ function spawnWithClosedStdin(
 
     const timer = setTimeout(() => {
       child.kill();
+      // Escalate to SIGKILL if the process ignores SIGTERM so it can't linger past the timeout.
+      setTimeout(() => child.kill("SIGKILL"), 2000).unref();
       reject(new Error(`Process timed out after ${timeoutMs}ms`));
     }, timeoutMs);
 
@@ -427,6 +429,23 @@ async function generateWithClaudeCode(params: GenerateCommitParams, prompt: stri
   return requireCommitMessage(stdout, "Claude Code");
 }
 
+// Distinguishes an HTTP response with an error status (server reached, real API
+// error) from a transport failure (server genuinely unreachable). Only the
+// latter should be reported as "unreachable" and trip the Ollama cooldown.
+class HttpResponseError extends Error {
+  constructor(public readonly status: number, message: string) {
+    super(message);
+    this.name = "HttpResponseError";
+  }
+}
+
+class OllamaUnreachableError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "OllamaUnreachableError";
+  }
+}
+
 async function fetchOllamaJson<T>(
   baseUrl: string,
   path: string,
@@ -435,6 +454,7 @@ async function fetchOllamaJson<T>(
 ): Promise<{ data: T; resolvedBaseUrl: string }> {
   const candidates = await buildBaseUrlCandidates(baseUrl);
   const errors: string[] = [];
+  let responded: HttpResponseError | undefined;
 
   for (const candidate of candidates) {
     try {
@@ -444,11 +464,22 @@ async function fetchOllamaJson<T>(
         resolvedBaseUrl: candidate,
       };
     } catch (error) {
+      if (error instanceof HttpResponseError && !responded) {
+        responded = error;
+      }
       errors.push(`${candidate}: ${formatError(error)}`);
     }
   }
 
-  throw new Error(`Unable to reach Ollama. Tried ${candidates.join(", ")}. ${errors.join(" | ")}`);
+  // If any candidate returned an HTTP response, Ollama is reachable — surface the
+  // real API error rather than a misleading "unable to reach".
+  if (responded) {
+    throw responded;
+  }
+
+  throw new OllamaUnreachableError(
+    `Unable to reach Ollama. Tried ${candidates.join(", ")}. ${errors.join(" | ")}`
+  );
 }
 
 async function fetchJson<T>(url: string, timeoutMs: number, init?: RequestInit): Promise<T> {
@@ -463,7 +494,7 @@ async function fetchJson<T>(url: string, timeoutMs: number, init?: RequestInit):
 
     if (!response.ok) {
       const text = await response.text();
-      throw new Error(`HTTP ${response.status}: ${text}`);
+      throw new HttpResponseError(response.status, `HTTP ${response.status}: ${text}`);
     }
 
     return await response.json() as T;
@@ -585,6 +616,7 @@ function requireCommitMessage(content: string, providerName: string): string {
 function sanitizeCommitMessage(content: string): string {
   return content
     .replace(/<think>[\s\S]*?<\/think>/gi, "")
+    .replace(/<think>[\s\S]*$/gi, "")
     .replace(/<\/think>/gi, "")
     .replace(/^\s*thinking:\s*/i, "")
     .trim();
@@ -604,8 +636,7 @@ function formatError(error: unknown): string {
 }
 
 function isOllamaReachabilityError(error: unknown): boolean {
-  const message = formatError(error);
-  return message.includes("Unable to reach Ollama");
+  return error instanceof OllamaUnreachableError;
 }
 
 function getOllamaCooldownMessage(baseUrl: string, cooldownMs: number): string | null {

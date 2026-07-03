@@ -31,23 +31,42 @@ export function getConfig(): OllamaCommitConfig {
   const config = vscode.workspace.getConfiguration("ollamacommit");
 
   return {
-    baseUrl: config.get<string>("baseUrl", "http://127.0.0.1:11434"),
-    model: config.get<string>("model", "qwen2.5-coder:7b"),
-    groqApiKey: config.get<string>("groqApiKey", ""),
-    groqModel: config.get<string>("groqModel", "openai/gpt-oss-20b"),
-    geminiApiKey: config.get<string>("geminiApiKey", ""),
-    geminiModel: config.get<string>("geminiModel", "gemini-2.0-flash-lite"),
-    openaiModel: config.get<string>("openaiModel", ""),
-    codexPath: config.get<string>("codexPath", ""),
-    claudePath: config.get<string>("claudePath", ""),
-    claudeModel: config.get<string>("claudeModel", "sonnet"),
-    systemPrompt: config.get<string>("systemPrompt", defaultSystemPrompt),
-    enableThinking: config.get<boolean>("enableThinking", false),
-    ollamaUnavailableCooldownMs: config.get<number>("ollamaUnavailableCooldownMs", 172800000),
-    maxDiffChars: config.get<number>("maxDiffChars", 12000),
-    temperature: config.get<number>("temperature", 0.2),
-    copyToClipboard: config.get<boolean>("copyToClipboard", false),
+    baseUrl: getString(config, "baseUrl", "http://127.0.0.1:11434"),
+    model: getString(config, "model", "qwen2.5-coder:7b"),
+    groqApiKey: getString(config, "groqApiKey", ""),
+    groqModel: getString(config, "groqModel", "openai/gpt-oss-20b"),
+    geminiApiKey: getString(config, "geminiApiKey", ""),
+    geminiModel: getString(config, "geminiModel", "gemini-2.0-flash-lite"),
+    openaiModel: getString(config, "openaiModel", ""),
+    codexPath: getString(config, "codexPath", ""),
+    claudePath: getString(config, "claudePath", ""),
+    claudeModel: getString(config, "claudeModel", "sonnet"),
+    systemPrompt: getString(config, "systemPrompt", defaultSystemPrompt),
+    enableThinking: getBoolean(config, "enableThinking", false),
+    ollamaUnavailableCooldownMs: getNumber(config, "ollamaUnavailableCooldownMs", 172800000),
+    maxDiffChars: getNumber(config, "maxDiffChars", 12000),
+    temperature: getNumber(config, "temperature", 0.2),
+    copyToClipboard: getBoolean(config, "copyToClipboard", false),
   };
+}
+
+// vscode's config.get() only substitutes the default for `undefined`, so an
+// explicit null or wrong-typed value in settings.json flows through unchecked.
+// These guard against that (e.g. `null.trim()` or a string where a number is
+// expected) by falling back to the default on any type mismatch.
+function getString(config: vscode.WorkspaceConfiguration, key: string, fallback: string): string {
+  const value = config.get(key);
+  return typeof value === "string" ? value : fallback;
+}
+
+function getNumber(config: vscode.WorkspaceConfiguration, key: string, fallback: number): number {
+  const value = config.get(key);
+  return typeof value === "number" && Number.isFinite(value) ? value : fallback;
+}
+
+function getBoolean(config: vscode.WorkspaceConfiguration, key: string, fallback: boolean): boolean {
+  const value = config.get(key);
+  return typeof value === "boolean" ? value : fallback;
 }
 
 export type EditableSettings = Pick<
