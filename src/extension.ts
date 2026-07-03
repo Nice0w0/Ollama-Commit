@@ -10,6 +10,7 @@ export function activate(context: vscode.ExtensionContext) {
         await runGenerateCommit(sourceControl);
       } catch (error) {
         const message = error instanceof Error ? error.message : String(error);
+        
         vscode.window.showErrorMessage(`Ollama Commit failed: ${message}`);
       }
     }
