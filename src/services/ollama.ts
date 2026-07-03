@@ -1,7 +1,8 @@
 import { access, readFile, readdir } from "node:fs/promises";
+import { constants as fsConstants } from "node:fs";
 import { execFile, spawn } from "node:child_process";
 import { homedir } from "node:os";
-import { join } from "node:path";
+import { delimiter, join } from "node:path";
 import { promisify } from "node:util";
 
 export type GenerateCommitParams = {
@@ -723,6 +724,11 @@ async function resolveCodexExecutable(configuredPath: string): Promise<string> {
     return discovered;
   }
 
+  const onPath = await findOnPath("codex");
+  if (onPath) {
+    return onPath;
+  }
+
   throw new Error("Could not find the Codex CLI binary. Set ollamacommit.codexPath to the full codex executable path.");
 }
 
@@ -774,8 +780,7 @@ async function findBundledCodexExecutable(): Promise<string | null> {
 
 async function hasClaudeCodeCli(configuredPath: string): Promise<boolean> {
   try {
-    const claudeExecutable = await resolveClaudeExecutable(configuredPath);
-    await ensureExecutableExists(claudeExecutable);
+    await resolveClaudeExecutable(configuredPath);
     return true;
   } catch {
     return false;
@@ -790,26 +795,59 @@ async function resolveClaudeExecutable(configuredPath: string): Promise<string> 
   }
 
   const envPath = process.env.CLAUDE_PATH?.trim();
-  if (envPath) {
-    try {
-      await ensureExecutableExists(envPath);
-      return envPath;
-    } catch {
-      // Try next candidate.
-    }
+  if (envPath && await isExecutable(envPath)) {
+    return envPath;
   }
 
   const localBin = join(homedir(), ".local", "bin", "claude");
-  try {
-    await ensureExecutableExists(localBin);
+  if (await isExecutable(localBin)) {
     return localBin;
-  } catch {
-    // Fall through to bare name.
   }
 
-  return "claude";
+  // Resolve a bare `claude` against PATH ourselves; access() alone checks the
+  // process cwd, not PATH, so it would reject a PATH-only install.
+  const onPath = await findOnPath("claude");
+  if (onPath) {
+    return onPath;
+  }
+
+  throw new Error("Could not find the claude CLI binary. Set ollamacommit.claudePath to the full claude executable path.");
 }
 
 async function ensureExecutableExists(filePath: string): Promise<void> {
-  await access(filePath);
+  await access(filePath, process.platform === "win32" ? fsConstants.F_OK : fsConstants.X_OK);
+}
+
+async function isExecutable(filePath: string): Promise<boolean> {
+  try {
+    await ensureExecutableExists(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// Resolves a bare command name against PATH (and PATHEXT on Windows), returning
+// the first executable match. Node's access()/spawn resolve a bare name against
+// the process cwd rather than PATH, so a PATH-only install is missed without this.
+async function findOnPath(command: string): Promise<string | null> {
+  if (command.includes("/") || command.includes("\\")) {
+    return (await isExecutable(command)) ? command : null;
+  }
+
+  const directories = (process.env.PATH || "").split(delimiter).filter((entry) => entry.length > 0);
+  const extensions = process.platform === "win32"
+    ? (process.env.PATHEXT || ".COM;.EXE;.BAT;.CMD").split(";").filter((entry) => entry.length > 0)
+    : [""];
+
+  for (const directory of directories) {
+    for (const extension of extensions) {
+      const candidate = join(directory, `${command}${extension}`);
+      if (await isExecutable(candidate)) {
+        return candidate;
+      }
+    }
+  }
+
+  return null;
 }
