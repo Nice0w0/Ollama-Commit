@@ -19,6 +19,7 @@ export function activate(context: vscode.ExtensionContext) {
   const openSettingsCommand = vscode.commands.registerCommand(
     "ollamacommit.openSettings",
     async () => {
+      
       SettingsPanel.createOrShow(context.extensionUri);
     }
   );
